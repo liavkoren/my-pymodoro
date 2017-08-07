@@ -10,6 +10,10 @@ import reprlib
 from tqdm import tqdm
 
 
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'pymodoro.settings')
+django.setup()
+from bouts import models  # NOQA
+
 # from django import utils # see utils.timezone.now()
 eastern = timezone('US/Eastern')
 
@@ -59,7 +63,7 @@ def start_bout(project):
 
 def create_bout(project):
     return models.Bout.objects.create(
-        duration=datetime.timedelta(seconds=click.prompt('How many minutes?', default=35)),
+        duration=datetime.timedelta(seconds=click.prompt('How many minutes?', default=35) * 60),
         plan=click.prompt("What's the plan, stan?"),
         project=models.Project.objects.get(name=project),
         start_time=datetime.datetime.now().astimezone(eastern),
@@ -68,7 +72,7 @@ def create_bout(project):
 
 def bout_in_progress(bout):
     now = datetime.datetime.now().astimezone(eastern)
-    bar_format = '{l_bar}{bar}{n_fmt}/{total_fmt} [{elapsed}<{remaining}]'
+    bar_format = '{l_bar}{bar}[{elapsed}<{remaining}]'
     with tqdm(total=bout.duration.total_seconds(), desc='Bout progress', bar_format=bar_format, leave=False) as pbar:
         while datetime.datetime.now().astimezone(eastern) < bout.start_time + bout.duration:
             time.sleep(0.1)
@@ -99,7 +103,4 @@ def play_complete_sound():
 
 
 if __name__ == '__main__':
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'pymodoro.settings')
-    django.setup()
-    from bouts import models
     cli()

@@ -1,4 +1,4 @@
-from django.core.validators import MaxValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django_extensions.db.models import TimeStampedModel
 
@@ -14,7 +14,7 @@ class Bout(models.Model):
     notes = models.TextField(blank=True)
     plan = models.TextField()
     result = models.TextField(blank=True)
-    focus = models.PositiveSmallIntegerField(blank=True, null=True, validators=[MaxValueValidator(8)], help_text='Focus level, during the bout. Likert scale, out of seven. Four is neutral, one is very bad, seven is very good.')
+    focus = models.FloatField(blank=True, null=True, validators=[MaxValueValidator(8), MinValueValidator(0)], help_text='Focus level, during the bout. Likert scale, out of seven. Four is neutral, one is very bad, seven is very good.')
 
     class Meta:
         ordering = ('start_time', )
@@ -29,6 +29,7 @@ class Project(TimeStampedModel):
     """ A project that you're applying work sessions towards. """
     name = models.CharField(max_length=200, unique=True)
     description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return f'{self.name}: {self.description}'

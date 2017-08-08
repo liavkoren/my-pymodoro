@@ -90,9 +90,15 @@ def list_bouts(project):
 
 
 def bout_complete(bout):
+    now = datetime.datetime.now()
     play_complete_sound()
     bout.result = click.prompt("How'd it go?")
     bout.focus = click.prompt('Focus level? (Likert scale, 1 - 7, one is very bad, seven is very good)')
+    two_minutes = datetime.timedelta(seconds=60*2)
+    time_elapsed = datetime.datetime.now() - now
+    minutes, seconds = divmod(time_elapsed.total_seconds(), 60)
+    if time_elapsed > two_minutes and click.prompt(f'Add an extra {minutes:.0f}:{seconds:02.0f} to the bout?', type=click.BOOL):
+        bout.duration += time_elapsed
     bout.save()
 
 

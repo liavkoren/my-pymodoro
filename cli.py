@@ -1,5 +1,6 @@
 import datetime
 import os
+import signal
 import time
 
 import click
@@ -15,6 +16,7 @@ django.setup()
 from bouts import models  # NOQA
 
 # from django import utils # see utils.timezone.now()
+# TODO: switch this over to using UTC.
 eastern = timezone('US/Eastern')
 
 
@@ -57,8 +59,15 @@ def start_bout(project):
     - play background, and ending sounds
     """
     bout = create_bout(project)
-    bout_in_progress(bout)
-    bout_complete(bout)
+    signal.signal(signal.SIGINT, signal.default_int_handler)
+    try:
+        bout_in_progress(bout)
+    except KeyboardInterrupt:
+        truncate_bout_duration(bout, datetime.datetime.now().astimezone(eastern))
+        bout_complete(bout)
+    else:
+        play_complete_sound()
+        bout_complete(bout)
 
 
 def create_bout(project):
@@ -90,16 +99,24 @@ def list_bouts(project):
 
 
 def bout_complete(bout):
-    now = datetime.datetime.now()
-    play_complete_sound()
+    finish_time = datetime.datetime.now().astimezone(eastern)
     bout.result = click.prompt("How'd it go?")
     bout.focus = click.prompt('Focus level? (Likert scale, 1 - 7, one is very bad, seven is very good)')
+    extend_bout_duration(bout, finish_time)
+    bout.save()
+
+
+def truncate_bout_duration(bout, finish_time):
+    actual_duration = finish_time - bout.start_time
+    bout.duration = actual_duration
+
+
+def extend_bout_duration(bout, finish_time):
     two_minutes = datetime.timedelta(seconds=60*2)
-    time_elapsed = datetime.datetime.now() - now
+    time_elapsed = datetime.datetime.now().astimezone(eastern) - finish_time
     minutes, seconds = divmod(time_elapsed.total_seconds(), 60)
     if time_elapsed > two_minutes and click.prompt(f'Add an extra {minutes:.0f}:{seconds:02.0f} to the bout?', type=click.BOOL):
         bout.duration += time_elapsed
-    bout.save()
 
 
 def play_complete_sound():
